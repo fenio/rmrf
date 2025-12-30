@@ -104,7 +104,7 @@ Uses Btrfs with zstd compression for the merged volume.
 1. Removes bloat (as above)
 2. Disables swap and unmounts `/mnt`
 3. Creates a loopback file from freed space on root (~80% of available)
-4. Creates LVM volume group combining `/dev/sdb1` (former /mnt) and loopback
+4. Creates LVM volume group combining the former `/mnt` disk and loopback
 5. Formats as ext4 or Btrfs (with zstd compression)
 6. Mounts at `/home/runner/work`
 

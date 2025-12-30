@@ -191,6 +191,9 @@ runs:
         
         # Unmount /mnt
         echo ">>> Unmounting /mnt..."
+        # Get the device for /mnt before unmounting
+        MNT_DEVICE=$(df /mnt --output=source | tail -1)
+        echo ">>> /mnt is on device: $MNT_DEVICE"
         sudo umount /mnt || true
         
         # Calculate loopback size (80% of available root space)
@@ -218,12 +221,12 @@ runs:
         # Create LVM physical volumes (force to overwrite existing signatures)
         echo ""
         echo ">>> Creating LVM physical volumes..."
-        sudo pvcreate -ff -y /dev/sdb1
+        sudo pvcreate -ff -y "$MNT_DEVICE"
         sudo pvcreate -ff -y "$loop_dev"
         
         # Create volume group
         echo ">>> Creating volume group 'workspace'..."
-        sudo vgcreate workspace /dev/sdb1 "$loop_dev"
+        sudo vgcreate workspace "$MNT_DEVICE" "$loop_dev"
         
         # Create logical volume
         echo ">>> Creating logical volume 'work'..."

@@ -71,6 +71,9 @@ jobs:
           
           echo ">>> Disabling swap and unmounting /mnt..."
           sudo swapoff -a || true
+          # Get the device for /mnt before unmounting
+          MNT_DEVICE=$(df /mnt --output=source | tail -1)
+          echo ">>> /mnt is on device: $MNT_DEVICE"
           sudo umount /mnt || true
           
           # Create loopback
@@ -84,9 +87,9 @@ jobs:
           
           # Create LVM
           echo ">>> Creating LVM..."
-          sudo pvcreate -ff -y /dev/sdb1
+          sudo pvcreate -ff -y "$MNT_DEVICE"
           sudo pvcreate -ff -y "$loop_dev"
-          sudo vgcreate workspace /dev/sdb1 "$loop_dev"
+          sudo vgcreate workspace "$MNT_DEVICE" "$loop_dev"
           sudo lvcreate -l 100%FREE -n work workspace
           
           # Format and mount
@@ -144,6 +147,9 @@ jobs:
           
           echo ">>> Disabling swap and unmounting /mnt..."
           sudo swapoff -a || true
+          # Get the device for /mnt before unmounting
+          MNT_DEVICE=$(df /mnt --output=source | tail -1)
+          echo ">>> /mnt is on device: $MNT_DEVICE"
           sudo umount /mnt || true
           
           # Create loopback
@@ -157,9 +163,9 @@ jobs:
           
           # Create LVM
           echo ">>> Creating LVM..."
-          sudo pvcreate -ff -y /dev/sdb1
+          sudo pvcreate -ff -y "$MNT_DEVICE"
           sudo pvcreate -ff -y "$loop_dev"
-          sudo vgcreate workspace /dev/sdb1 "$loop_dev"
+          sudo vgcreate workspace "$MNT_DEVICE" "$loop_dev"
           sudo lvcreate -l 100%FREE -n work workspace
           
           # Format and mount with Btrfs
