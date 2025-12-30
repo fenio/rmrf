@@ -58,6 +58,50 @@ jobs:
           remove-docker-images: 'true'
           nuke: 'true'
           merge-disks: 'false'
+      - name: Analyze remaining space hogs
+        run: |
+          echo "============================================"
+          echo "  Remaining Space Hogs Analysis"
+          echo "============================================"
+          echo ""
+          
+          echo "=== Top 30 largest directories in /usr ==="
+          sudo du -sh /usr/*/ 2>/dev/null | sort -hr | head -30
+          echo ""
+          
+          echo "=== Top 30 largest directories in /opt ==="
+          sudo du -sh /opt/*/ 2>/dev/null | sort -hr | head -30
+          echo ""
+          
+          echo "=== Top 20 largest directories in /var ==="
+          sudo du -sh /var/*/ 2>/dev/null | sort -hr | head -20
+          echo ""
+          
+          echo "=== Top 20 largest directories in /home ==="
+          sudo du -sh /home/*/ 2>/dev/null | sort -hr | head -20
+          echo ""
+          
+          echo "=== Breakdown of /usr/share (top 30) ==="
+          sudo du -sh /usr/share/*/ 2>/dev/null | sort -hr | head -30
+          echo ""
+          
+          echo "=== Breakdown of /usr/lib (top 30) ==="
+          sudo du -sh /usr/lib/*/ 2>/dev/null | sort -hr | head -30
+          echo ""
+          
+          echo "=== Breakdown of /usr/local (top 20) ==="
+          sudo du -sh /usr/local/*/ 2>/dev/null | sort -hr | head -20
+          echo ""
+          
+          echo "=== Large files (>100MB) ==="
+          sudo find / -xdev -type f -size +100M 2>/dev/null | head -50 | while read f; do
+            sudo du -sh "$f" 2>/dev/null
+          done | sort -hr
+          echo ""
+          
+          echo "=== Installed packages by size (top 50) ==="
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -rn | head -50 | awk '{printf "%.1fM\t%s\n", $1/1024, $2}'
+          echo ""
       - name: Verify workspace is writable
         run: |
           echo "Testing workspace write access..."
