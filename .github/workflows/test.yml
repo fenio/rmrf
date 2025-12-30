@@ -41,7 +41,7 @@ jobs:
 
   # Test 2: Merge disks with ext4
   test-merge-ext4:
-    if: ${{ github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-ext4' }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-ext4' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
 
   # Test 3: Merge disks with Btrfs + compression
   test-merge-btrfs:
-    if: ${{ github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-btrfs' }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-btrfs' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
