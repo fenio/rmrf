@@ -8,7 +8,7 @@ GitHub-hosted runners come with a lot of pre-installed software you probably don
 
 - **Fast deletion** using [rmz](https://github.com/SUPERCILEX/fuc) (parallel, Rust-based rm)
 - **Configurable cleanup** - choose what to remove
-- **Disk merging** - combine root and `/mnt` into a single LVM volume (~100GB)
+- **Disk merging** - combine root and `/mnt` into a single LVM volume at `$GITHUB_WORKSPACE` (~100GB)
 - **Btrfs support** - optional zstd compression for even more space
 
 ## Usage
@@ -23,7 +23,7 @@ This removes ~20GB of bloat (Android SDK, .NET, Haskell, Boost, Swift, CodeQL).
 
 ### With disk merging
 
-> **Important:** When using `merge-disks: true`, the action mounts a fresh filesystem at `/home/runner/work`. This means it **must run before `actions/checkout`**, or your checked-out code will be overwritten.
+> **Important:** When using `merge-disks: true`, the action mounts a fresh filesystem at `$GITHUB_WORKSPACE`. This means it **must run before `actions/checkout`**, so the code gets checked out onto the merged volume.
 
 ```yaml
 jobs:
