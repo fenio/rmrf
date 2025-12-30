@@ -36,7 +36,7 @@ jobs:
           merge-disks: 'true'
       
       # Now checkout into the merged workspace
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Your build steps...
 ```
@@ -57,7 +57,7 @@ jobs:
           use-btrfs: 'true'
       
       # Now checkout into the merged workspace
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 ```
 
 Uses Btrfs with zstd compression for the merged volume.
