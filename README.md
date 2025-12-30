@@ -123,7 +123,8 @@ Uses Btrfs with zstd compression for the merged volume.
 | Cleanup only | 55GB used, 18GB free | 35GB used, 38GB free | **~38GB on root** |
 | Cleanup + nuke | 55GB used, 18GB free | 14GB used, 58GB free | **~58GB on root** |
 | Merge (ext4) | - | - | **~100GB unified** |
-| Merge (Btrfs+zstd) | - | - | **~100GB+ (compression dependent)** |
+| Merge (Btrfs+zstd) | - | - | **~100GB+ unified** |
+| **Maximum** (all + nuke + merge) | 55GB used, 18GB free | 25GB used, 47GB free | **~113GB unified** |
 
 ## Bloat locations on GitHub runners
 
