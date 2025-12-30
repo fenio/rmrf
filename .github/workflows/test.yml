@@ -40,13 +40,17 @@ jobs:
           echo "Workspace is writable!"
 
   # Test 2: Merge disks with ext4
+  # NOTE: For merge tests, checkout must happen to /tmp first because
+  # the action mounts a fresh filesystem at /home/runner/work
   test-merge-ext4:
     if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-ext4' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: /tmp/gtfo
       - name: Run GTFO (merge with ext4)
-        uses: ./
+        uses: /tmp/gtfo
         with:
           remove-android: 'true'
           remove-dotnet: 'true'
@@ -62,19 +66,24 @@ jobs:
           df -h /home/runner/work
           echo ""
           echo "Testing write access..."
+          cd /home/runner/work
           echo "test" > test-file.txt
           cat test-file.txt
           rm test-file.txt
           echo "Merged workspace is functional!"
 
   # Test 3: Merge disks with Btrfs + compression
+  # NOTE: For merge tests, checkout must happen to /tmp first because
+  # the action mounts a fresh filesystem at /home/runner/work
   test-merge-btrfs:
     if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-btrfs' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: /tmp/gtfo
       - name: Run GTFO (merge with Btrfs)
-        uses: ./
+        uses: /tmp/gtfo
         with:
           remove-android: 'true'
           remove-dotnet: 'true'
@@ -93,6 +102,7 @@ jobs:
           cat /proc/mounts | grep workspace || true
           echo ""
           echo "Testing write access..."
+          cd /home/runner/work
           echo "test" > test-file.txt
           cat test-file.txt
           rm test-file.txt

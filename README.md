@@ -23,10 +23,22 @@ This removes ~20GB of bloat (Android SDK, .NET, Haskell, Boost, Swift).
 
 ### With disk merging
 
+> **Important:** When using `merge-disks: true`, the action mounts a fresh filesystem at `/home/runner/work`. This means it **must run before `actions/checkout`**, or your checked-out code will be overwritten.
+
 ```yaml
-- uses: fenio/gtfo@v1
-  with:
-    merge-disks: 'true'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # GTFO must run FIRST when using merge-disks
+      - uses: fenio/gtfo@v1
+        with:
+          merge-disks: 'true'
+      
+      # Now checkout into the merged workspace
+      - uses: actions/checkout@v4
+      
+      # Your build steps...
 ```
 
 Creates a ~100GB unified workspace by combining freed space with the `/mnt` disk.
@@ -34,10 +46,18 @@ Creates a ~100GB unified workspace by combining freed space with the `/mnt` disk
 ### With Btrfs compression
 
 ```yaml
-- uses: fenio/gtfo@v1
-  with:
-    merge-disks: 'true'
-    use-btrfs: 'true'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # GTFO must run FIRST when using merge-disks
+      - uses: fenio/gtfo@v1
+        with:
+          merge-disks: 'true'
+          use-btrfs: 'true'
+      
+      # Now checkout into the merged workspace
+      - uses: actions/checkout@v4
 ```
 
 Uses Btrfs with zstd compression for the merged volume.
