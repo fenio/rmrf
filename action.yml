@@ -226,7 +226,7 @@ runs:
         # Find available loop device
         loop_dev=$(sudo losetup -f)
         echo ">>> Using loop device: $loop_dev"
-        sudo losetup --sector-size 4096 "$loop_dev" /space.img
+        sudo losetup "$loop_dev" /space.img
         
         # Create LVM physical volumes (force to overwrite existing signatures)
         echo ""

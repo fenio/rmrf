@@ -87,7 +87,7 @@ jobs:
           echo ">>> Creating ${loop_size}GB loopback..."
           sudo fallocate -l ${loop_size}G /space.img
           loop_dev=$(sudo losetup -f)
-          sudo losetup --sector-size 4096 "$loop_dev" /space.img
+          sudo losetup "$loop_dev" /space.img
           
           # Create LVM
           echo ">>> Creating LVM..."
@@ -173,7 +173,7 @@ jobs:
           echo ">>> Creating ${loop_size}GB loopback..."
           sudo fallocate -l ${loop_size}G /space.img
           loop_dev=$(sudo losetup -f)
-          sudo losetup --sector-size 4096 "$loop_dev" /space.img
+          sudo losetup "$loop_dev" /space.img
           
           # Create LVM
           echo ">>> Creating LVM..."
