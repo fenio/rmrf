@@ -195,53 +195,80 @@ runs:
         echo "============================================"
         echo ""
         
-        # Function to nuke a package by removing all its files
-        nuke_package() {
+        # Collect all paths to nuke
+        nuke_paths=()
+        
+        # Function to add package directories to nuke list
+        add_package_dirs() {
           local pkg="$1"
           if dpkg -s "$pkg" &>/dev/null; then
-            echo ">>> Nuking $pkg..."
-            dpkg -L "$pkg" 2>/dev/null | grep -v '/$' | xargs -r sudo /tmp/rmz 2>/dev/null || true
+            echo ">>> Found $pkg"
+            # Get unique top-level directories from package (excluding /usr/share/doc, /usr/share/man, etc.)
+            while IFS= read -r dir; do
+              if [[ -d "$dir" && "$dir" != "/" ]]; then
+                nuke_paths+=("$dir")
+              fi
+            done < <(dpkg -L "$pkg" 2>/dev/null | grep -E "^/(opt|usr/lib|usr/share)/[^/]+$" | sort -u)
           fi
         }
         
-        # Function to nuke packages matching a pattern
-        nuke_pattern() {
+        # Function to find packages matching pattern and add their dirs
+        add_pattern_dirs() {
           local pattern="$1"
-          local desc="$2"
           local packages=$(dpkg -l | grep -E "^ii\s+$pattern" | awk '{print $2}' || true)
-          if [[ -n "$packages" ]]; then
-            echo ">>> Nuking $desc..."
-            for pkg in $packages; do
-              dpkg -L "$pkg" 2>/dev/null | grep -v '/$' | xargs -r sudo /tmp/rmz 2>/dev/null || true
-            done
-          fi
+          for pkg in $packages; do
+            add_package_dirs "$pkg"
+          done
         }
         
-        # Browsers
-        echo ""
+        # Browsers - add known locations directly (faster than parsing dpkg)
         echo "=== Browsers ==="
-        nuke_package "google-chrome-stable"
-        nuke_package "firefox"
-        nuke_package "microsoft-edge-stable"
+        [[ -d "/opt/google/chrome" ]] && nuke_paths+=("/opt/google/chrome") && echo ">>> Found Chrome"
+        [[ -d "/opt/microsoft/msedge" ]] && nuke_paths+=("/opt/microsoft/msedge") && echo ">>> Found Edge"
+        [[ -d "/opt/microsoft/edge" ]] && nuke_paths+=("/opt/microsoft/edge") && echo ">>> Found Edge"
+        [[ -d "/usr/lib/firefox" ]] && nuke_paths+=("/usr/lib/firefox") && echo ">>> Found Firefox"
+        [[ -d "/usr/lib/chromium-browser" ]] && nuke_paths+=("/usr/lib/chromium-browser") && echo ">>> Found Chromium"
         
-        # Databases
-        echo ""
-        echo "=== Databases ==="
-        nuke_pattern "mysql" "MySQL"
-        nuke_pattern "postgresql" "PostgreSQL"
-        nuke_pattern "mongodb" "MongoDB"
-        
-        # Cloud CLIs
+        # Cloud CLIs - known locations
         echo ""
         echo "=== Cloud CLIs ==="
-        nuke_package "azure-cli"
-        nuke_package "google-cloud-sdk"
-        nuke_package "google-cloud-cli"
-        nuke_package "aws-cli"
-        nuke_package "awscli"
+        [[ -d "/usr/share/az_9.5.0" ]] && nuke_paths+=("/usr/share/az_9.5.0") && echo ">>> Found Azure CLI"
+        [[ -d "/opt/az" ]] && nuke_paths+=("/opt/az") && echo ">>> Found Azure CLI (opt)"
+        [[ -d "/usr/lib/google-cloud-sdk" ]] && nuke_paths+=("/usr/lib/google-cloud-sdk") && echo ">>> Found Google Cloud SDK"
+        [[ -d "/usr/local/aws-cli" ]] && nuke_paths+=("/usr/local/aws-cli") && echo ">>> Found AWS CLI"
+        # Find azure CLI directory dynamically
+        for d in /usr/share/az_*; do
+          [[ -d "$d" ]] && nuke_paths+=("$d") && echo ">>> Found Azure CLI at $d"
+        done
+        for d in /opt/hostedtoolcache/Python/*/x64/lib/python*/site-packages/azure; do
+          [[ -d "$d" ]] && nuke_paths+=("$d")
+        done
+        
+        # Databases - known locations  
+        echo ""
+        echo "=== Databases ==="
+        [[ -d "/usr/lib/postgresql" ]] && nuke_paths+=("/usr/lib/postgresql") && echo ">>> Found PostgreSQL"
+        [[ -d "/usr/share/postgresql" ]] && nuke_paths+=("/usr/share/postgresql") && echo ">>> Found PostgreSQL data"
+        [[ -d "/usr/lib/mysql" ]] && nuke_paths+=("/usr/lib/mysql") && echo ">>> Found MySQL"
+        [[ -d "/usr/share/mysql" ]] && nuke_paths+=("/usr/share/mysql") && echo ">>> Found MySQL data"
+        [[ -d "/var/lib/mysql" ]] && nuke_paths+=("/var/lib/mysql") && echo ">>> Found MySQL var"
+        [[ -d "/var/lib/postgresql" ]] && nuke_paths+=("/var/lib/postgresql") && echo ">>> Found PostgreSQL var"
         
         echo ""
-        echo "Nuke complete!"
+        
+        # Remove duplicates and nuke
+        if [[ ${#nuke_paths[@]} -gt 0 ]]; then
+          # Remove duplicates
+          readarray -t unique_paths < <(printf '%s\n' "${nuke_paths[@]}" | sort -u)
+          echo "Nuking ${#unique_paths[@]} directories..."
+          echo "Paths: ${unique_paths[*]}"
+          echo ""
+          sudo /tmp/rmz "${unique_paths[@]}" 2>/dev/null || true
+          echo "Nuke complete!"
+        else
+          echo "No packages found to nuke."
+        fi
+        
         echo ""
 
     # ============================================
