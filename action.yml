@@ -1,4 +1,4 @@
-name: 'rmrf'
+name: 'rm-rf'
 description: 'Runner Maintenance: Reclaim Filesystem - Reclaim disk space on GitHub runners'
 author: 'fenio'
 
