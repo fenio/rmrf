@@ -434,6 +434,12 @@ runs:
         sudo mkswap /swap.img
         sudo swapon /swap.img
         
+        # Recreate the working directory structure that GitHub expects
+        # The path is /home/runner/work/<repo>/<repo>
+        REPO_NAME="${GITHUB_REPOSITORY#*/}"
+        echo ">>> Recreating working directory for $REPO_NAME..."
+        sudo mkdir -p "/home/runner/work/${REPO_NAME}/${REPO_NAME}"
+        
         # Fix ownership
         echo ">>> Fixing ownership..."
         sudo chown -R runner:runner /home/runner/work
