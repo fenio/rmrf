@@ -19,7 +19,7 @@ GitHub-hosted runners come with a lot of pre-installed software you probably don
 - uses: fenio/gtfo@v1
 ```
 
-This removes ~20GB of bloat (Android SDK, .NET, Haskell, Boost, Swift).
+This removes ~20GB of bloat (Android SDK, .NET, Haskell, Boost, Swift, CodeQL).
 
 ### With disk merging
 
@@ -67,12 +67,14 @@ Uses Btrfs with zstd compression for the merged volume.
 ```yaml
 - uses: fenio/gtfo@v1
   with:
-    remove-android: 'true'       # ~12GB
-    remove-dotnet: 'true'        # ~2GB
-    remove-haskell: 'true'       # ~2GB
-    remove-boost: 'true'         # ~1GB
-    remove-swift: 'true'         # ~1.5GB
-    remove-docker-images: 'false'
+    remove-android: 'true'          # ~12GB
+    remove-dotnet: 'true'           # ~2GB
+    remove-haskell: 'true'          # ~2GB
+    remove-boost: 'true'            # ~1GB
+    remove-swift: 'true'            # ~1.5GB
+    remove-codeql: 'true'           # ~1GB
+    remove-hostedtoolcache: 'false' # ~8GB - Go, Node.js, Python, Ruby, etc.
+    remove-docker-images: 'false'   # ~4GB
     merge-disks: 'false'
     use-btrfs: 'false'
 ```
@@ -86,7 +88,9 @@ Uses Btrfs with zstd compression for the merged volume.
 | `remove-haskell` | Remove GHC/Haskell (~2GB) | `true` |
 | `remove-boost` | Remove Boost (~1GB) | `true` |
 | `remove-swift` | Remove Swift (~1.5GB) | `true` |
-| `remove-docker-images` | Remove Docker images | `false` |
+| `remove-codeql` | Remove CodeQL (~1GB) | `true` |
+| `remove-hostedtoolcache` | Remove cached tool versions - Go, Node.js, Python, Ruby, etc. (~8GB) | `false` |
+| `remove-docker-images` | Remove Docker images (~4GB) | `false` |
 | `merge-disks` | Merge root and /mnt into single LVM volume | `false` |
 | `use-btrfs` | Use Btrfs with zstd compression (requires merge-disks) | `false` |
 
@@ -123,11 +127,14 @@ Uses Btrfs with zstd compression for the merged volume.
 | Path | Size | Removed by |
 |------|------|------------|
 | `/usr/local/lib/android` | ~12GB | `remove-android` |
+| `/opt/hostedtoolcache` | ~8GB | `remove-hostedtoolcache` |
 | `/usr/share/dotnet` | ~2GB | `remove-dotnet` |
 | `/opt/ghc` | ~2GB | `remove-haskell` |
 | `/usr/local/.ghcup` | ~1GB | `remove-haskell` |
 | `/usr/local/share/boost` | ~1GB | `remove-boost` |
 | `/usr/share/swift` | ~1.5GB | `remove-swift` |
+| `/opt/hostedtoolcache/CodeQL` | ~1GB | `remove-codeql` |
+| Docker images | ~4GB | `remove-docker-images` |
 
 ## License
 

@@ -27,8 +27,16 @@ inputs:
     description: 'Remove Swift (~1.5GB)'
     required: false
     default: 'true'
+  remove-codeql:
+    description: 'Remove CodeQL (~1GB)'
+    required: false
+    default: 'true'
+  remove-hostedtoolcache:
+    description: 'Remove cached tool versions - Go, Node.js, Python, Ruby, etc. (~8GB)'
+    required: false
+    default: 'false'
   remove-docker-images:
-    description: 'Remove Docker images'
+    description: 'Remove Docker images (~4GB)'
     required: false
     default: 'false'
   merge-disks:
@@ -87,6 +95,8 @@ runs:
         REMOVE_HASKELL: ${{ inputs.remove-haskell }}
         REMOVE_BOOST: ${{ inputs.remove-boost }}
         REMOVE_SWIFT: ${{ inputs.remove-swift }}
+        REMOVE_CODEQL: ${{ inputs.remove-codeql }}
+        REMOVE_HOSTEDTOOLCACHE: ${{ inputs.remove-hostedtoolcache }}
         REMOVE_DOCKER: ${{ inputs.remove-docker-images }}
       run: |
         echo "============================================"
@@ -120,6 +130,16 @@ runs:
         if [[ "$REMOVE_SWIFT" == "true" ]]; then
           echo "- Marking Swift for removal"
           paths+=("/usr/share/swift")
+        fi
+        
+        if [[ "$REMOVE_CODEQL" == "true" ]]; then
+          echo "- Marking CodeQL for removal"
+          [[ -d "/opt/hostedtoolcache/CodeQL" ]] && paths+=("/opt/hostedtoolcache/CodeQL")
+        fi
+        
+        if [[ "$REMOVE_HOSTEDTOOLCACHE" == "true" ]]; then
+          echo "- Marking hosted tool cache for removal (Go, Node.js, Python, Ruby, etc.)"
+          [[ -d "/opt/hostedtoolcache" ]] && paths+=("/opt/hostedtoolcache")
         fi
         
         echo ""
