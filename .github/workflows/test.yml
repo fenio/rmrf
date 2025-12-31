@@ -16,6 +16,7 @@ on:
           - merge-ext4
           - merge-btrfs
           - max-space
+          - slim
 
 jobs:
   # Test 1: Default cleanup (no merge)
@@ -594,3 +595,150 @@ jobs:
           cat test-file.txt
           rm test-file.txt
           echo "Maximum space workspace is functional!"
+
+  # Test 6: Ubuntu Slim comparison - test merge-disks on already-slim image
+  test-slim-comparison:
+    if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'slim' }}
+    runs-on: ubuntu-slim
+    steps:
+      - name: Run gh-rmrf inline (Btrfs merge on slim)
+        run: |
+          echo "============================================"
+          echo "  gh-rmrf - UBUNTU-SLIM COMPARISON TEST"
+          echo "============================================"
+          echo ""
+          echo "NOTE: ubuntu-slim has minimal pre-installed software."
+          echo "Most cleanup options will have no effect."
+          echo "Testing disk merge capability only."
+          echo ""
+          df -h
+          
+          # Save initial values
+          INITIAL_ROOT_AVAIL=$(df / --output=avail -BG | tail -1 | tr -d ' G')
+          INITIAL_ROOT_USED=$(df / --output=used -BG | tail -1 | tr -d ' G')
+          
+          # Check if /mnt exists and is mounted
+          if mountpoint -q /mnt 2>/dev/null; then
+            INITIAL_MNT_AVAIL=$(df /mnt --output=avail -BG | tail -1 | tr -d ' G')
+            echo ">>> /mnt is mounted with ${INITIAL_MNT_AVAIL}GB available"
+          else
+            echo ">>> /mnt is NOT mounted on ubuntu-slim"
+            echo ">>> Disk merge may not be possible"
+            INITIAL_MNT_AVAIL=0
+          fi
+          
+          # Attempt cleanup (likely no-ops on slim)
+          echo ""
+          echo ">>> Checking for bloat directories (expecting none on slim)..."
+          paths_found=0
+          for p in /usr/local/lib/android /usr/share/dotnet /usr/share/swift \
+                   /usr/local/share/boost /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache; do
+            if [[ -d "$p" ]]; then
+              echo "  Found: $p"
+              ((paths_found++))
+            fi
+          done
+          echo ">>> Found $paths_found bloat directories (expected: 0 on slim)"
+          
+          # Check if merge is possible
+          if ! mountpoint -q /mnt 2>/dev/null; then
+            echo ""
+            echo "============================================"
+            echo "  RESULT: Disk merge not possible on ubuntu-slim"
+            echo "============================================"
+            echo ""
+            echo "ubuntu-slim does not have /mnt mounted."
+            echo "The merge-disks feature requires /mnt."
+            echo ""
+            echo "Final disk state:"
+            df -h
+            exit 0
+          fi
+          
+          # Install tools if needed
+          if ! command -v pvcreate &> /dev/null; then
+            echo ">>> Installing LVM..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq lvm2
+          fi
+          if ! command -v mkfs.btrfs &> /dev/null; then
+            echo ">>> Installing Btrfs tools..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq btrfs-progs
+          fi
+          
+          echo ">>> Disabling swap and unmounting /mnt..."
+          sudo swapoff -a || true
+          MNT_DEVICE=$(df /mnt --output=source | tail -1)
+          echo ">>> /mnt is on device: $MNT_DEVICE"
+          sudo umount /mnt || true
+          
+          # Create loopback from available space
+          avail_kb=$(df / --output=avail | tail -1 | tr -d ' ')
+          loop_size=$(( avail_kb / 1024 / 1024 * 80 / 100 ))
+          [[ $loop_size -lt 10 ]] && loop_size=10
+          echo ">>> Creating ${loop_size}GB loopback..."
+          sudo fallocate -l ${loop_size}G /space.img
+          loop_dev=$(sudo losetup -f)
+          sudo losetup "$loop_dev" /space.img
+          
+          # Create LVM
+          echo ">>> Creating LVM..."
+          sudo pvcreate -ff -y "$MNT_DEVICE"
+          sudo pvcreate -ff -y "$loop_dev"
+          sudo vgcreate workspace "$MNT_DEVICE" "$loop_dev"
+          sudo lvcreate -l 100%FREE -n work workspace
+          
+          # Format and mount with Btrfs
+          echo ">>> Formatting as Btrfs with zstd compression..."
+          sudo mkfs.btrfs -f /dev/workspace/work
+          sudo mount -o compress=zstd /dev/workspace/work /home/runner/work
+          
+          # Create swap
+          echo ">>> Creating 4GB swap file..."
+          sudo fallocate -l 4G /swap.img
+          sudo chmod 600 /swap.img
+          sudo mkswap /swap.img
+          sudo swapon /swap.img
+          
+          sudo chown -R runner:runner /home/runner/work
+          
+          # Summary
+          echo ""
+          echo "============================================"
+          echo "  UBUNTU-SLIM COMPARISON - Summary"
+          echo "============================================"
+          echo ""
+          df -h
+          echo ""
+          
+          FINAL_ROOT_AVAIL=$(df / --output=avail -BG | tail -1 | tr -d ' G')
+          WORKSPACE_AVAIL=$(df /home/runner/work --output=avail -BG | tail -1 | tr -d ' G')
+          WORKSPACE_SIZE=$(df /home/runner/work --output=size -BG | tail -1 | tr -d ' G')
+          
+          echo "============================================"
+          echo "  UBUNTU-SLIM RESULTS"
+          echo "============================================"
+          echo ""
+          echo "Initial state:"
+          echo "  Root: ${INITIAL_ROOT_USED}GB used, ${INITIAL_ROOT_AVAIL}GB available"
+          echo "  /mnt: ${INITIAL_MNT_AVAIL}GB available"
+          echo ""
+          echo "Merged workspace (/home/runner/work) - Btrfs+zstd:"
+          echo "  Total size: ${WORKSPACE_SIZE}GB"
+          echo "  Available:  ${WORKSPACE_AVAIL}GB"
+          echo ""
+          echo "Verdict: Disk merge provides ${WORKSPACE_AVAIL}GB unified workspace"
+          echo "         vs ~${INITIAL_ROOT_AVAIL}GB on root alone"
+          echo "============================================"
+          
+      - name: Verify workspace
+        working-directory: /home/runner/work
+        run: |
+          echo "Checking mount..."
+          mount | grep /home/runner/work || echo "Mount not found (expected if /mnt unavailable)"
+          df -h /home/runner/work || df -h .
+          echo ""
+          echo "Testing write access..."
+          echo "test" > test-file.txt
+          cat test-file.txt
+          rm test-file.txt
+          echo "Workspace is functional!"
